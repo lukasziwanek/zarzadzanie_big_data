@@ -4,19 +4,19 @@ import sqlite3
 import matplotlib.pyplot as plt
 
 
+
+# # pierwszej waluty
 def get_currency(currencies_dict):
-    """Zwraca kod pierwszej waluty ze słownika currencies."""
     if currencies_dict:
         return list(currencies_dict.keys())[0]
     return None
 
 
-# =========================
-# CZĘŚĆ 1 - POBRANIE DANYCH
-# =========================
+
+#pobranie danych
 url = "https://restcountries.com/v3.1/all?fields=name,capital,region,subregion,population,area,currencies"
 response = requests.get(url)
-response.raise_for_status()  # zatrzyma program, jeśli API zwróci błąd
+response.raise_for_status()  #zamkniecie w razie gdy blad po stronie API
 
 data = response.json()
 
@@ -44,7 +44,9 @@ for kraj in data:
         "waluta": waluta,
     })
 
-# tworzenie DataFrame
+
+
+#tworzenie tabeli
 kraje_df = pd.DataFrame(kraje_lista)
 
 print("\nHEAD DataFrame:")
@@ -57,19 +59,19 @@ print("\nDTYPES DataFrame:")
 print(kraje_df.dtypes)
 
 
-# =========================
-# CZĘŚĆ 2 - ZAPIS DO SQLITE
-# =========================
+
+#zapis do bazy sqlite
 conn = sqlite3.connect("kraje_swiata.db")
 kraje_df.to_sql("kraje", conn, if_exists="replace", index=False)
 print("\nTabela 'kraje' została zapisana do bazy kraje_swiata.db")
 
 
-# =========================
-# CZĘŚĆ 3 - ANALIZA SQL
-# =========================
 
-# 1. Łączna populacja świata
+
+#analiza SQL i odpowiedzi na pytania
+
+
+# 1. Jaka jest łączna populacja świata?
 query1 = """
 SELECT SUM(populacja) AS laczna_populacja_swiata
 FROM kraje;
@@ -77,7 +79,8 @@ FROM kraje;
 print("\n1. Łączna populacja świata:")
 print(pd.read_sql_query(query1, conn))
 
-# 2. 10 krajów z największą populacją
+
+# 2. Które 10 krajów ma największą populację?
 query2 = """
 SELECT nazwa, populacja
 FROM kraje
@@ -87,7 +90,8 @@ LIMIT 10;
 print("\n2. 10 krajów z największą populacją:")
 print(pd.read_sql_query(query2, conn))
 
-# 3. Liczba krajów w każdym regionie i średnia populacja
+
+# 3. Ile krajów jest w każdym regionie i jaka jest ich średnia populacja?
 query3 = """
 SELECT region,
        COUNT(*) AS liczba_krajow,
@@ -99,7 +103,8 @@ ORDER BY liczba_krajow DESC;
 print("\n3. Liczba krajów w każdym regionie i średnia populacja:")
 print(pd.read_sql_query(query3, conn))
 
-# 4. Kraje większe od Polski
+
+# 4. Które kraje mają powierzchnię większą niż Polska (~312 679 km²)?
 query4 = """
 SELECT nazwa, powierzchnia
 FROM kraje
@@ -109,7 +114,8 @@ ORDER BY powierzchnia DESC;
 print("\n4. Kraje o powierzchni większej niż Polska:")
 print(pd.read_sql_query(query4, conn))
 
-# 5. Kraj o najwyższej gęstości zaludnienia
+
+# 5. Który kraj ma najwyższą gęstość zaludnienia (populacja / powierzchnia)?
 query5 = """
 SELECT nazwa,
        populacja,
@@ -125,9 +131,8 @@ print("\n5. Kraj o najwyższej gęstości zaludnienia:")
 print(pd.read_sql_query(query5, conn))
 
 
-# =========================
-# CZĘŚĆ 4 - WIZUALIZACJA
-# =========================
+
+#wykres z danymi
 query_chart = """
 SELECT region, SUM(populacja) AS laczna_populacja
 FROM kraje
@@ -136,6 +141,7 @@ ORDER BY laczna_populacja DESC;
 """
 
 wykres_df = pd.read_sql_query(query_chart, conn)
+
 
 plt.figure(figsize=(10, 6))
 plt.bar(wykres_df["region"], wykres_df["laczna_populacja"])
@@ -147,7 +153,9 @@ plt.tight_layout()
 plt.savefig("wykres_populacja_regionow.png")
 plt.show()
 
+
 print("\nWykres został zapisany jako: wykres_populacja_regionow.png")
 
-# zamknięcie połączenia z bazą
+
+
 conn.close()
